@@ -4,8 +4,10 @@
 
 import 'package:test/test.dart';
 import 'package:in_app_purchase/billing_client_wrappers.dart';
+import 'package:in_app_purchase/src/billing_client_wrappers/enum_converters.dart';
+import 'package:in_app_purchase/src/in_app_purchase/product_details.dart';
 
-final SkuDetailsWrapper dummyWrapper = SkuDetailsWrapper(
+final SkuDetailsWrapper dummySkuDetails = SkuDetailsWrapper(
   description: 'description',
   freeTrialPeriod: 'freeTrialPeriod',
   introductoryPrice: 'introductoryPrice',
@@ -18,16 +20,16 @@ final SkuDetailsWrapper dummyWrapper = SkuDetailsWrapper(
   sku: 'sku',
   subscriptionPeriod: 'subscriptionPeriod',
   title: 'title',
-  type: SkuType.INAPP,
+  type: SkuType.inapp,
   isRewarded: true,
 );
 
 void main() {
   group('SkuDetailsWrapper', () {
     test('converts from map', () {
-      final SkuDetailsWrapper expected = dummyWrapper;
+      final SkuDetailsWrapper expected = dummySkuDetails;
       final SkuDetailsWrapper parsed =
-          SkuDetailsWrapper.fromMap(buildSkuMap(expected));
+          SkuDetailsWrapper.fromJson(buildSkuMap(expected));
 
       expect(parsed, equals(expected));
     });
@@ -35,20 +37,20 @@ void main() {
 
   group('SkuDetailsResponseWrapper', () {
     test('parsed from map', () {
-      final BillingResponse responseCode = BillingResponse.OK;
+      final BillingResponse responseCode = BillingResponse.ok;
       final List<SkuDetailsWrapper> skusDetails = <SkuDetailsWrapper>[
-        dummyWrapper,
-        dummyWrapper
+        dummySkuDetails,
+        dummySkuDetails
       ];
       final SkuDetailsResponseWrapper expected = SkuDetailsResponseWrapper(
           responseCode: responseCode, skuDetailsList: skusDetails);
 
       final SkuDetailsResponseWrapper parsed =
-          SkuDetailsResponseWrapper.fromMap(<String, dynamic>{
-        'responseCode': int.parse(responseCode.toString()),
+          SkuDetailsResponseWrapper.fromJson(<String, dynamic>{
+        'responseCode': BillingResponseConverter().toJson(responseCode),
         'skuDetailsList': <Map<String, dynamic>>[
-          buildSkuMap(dummyWrapper),
-          buildSkuMap(dummyWrapper)
+          buildSkuMap(dummySkuDetails),
+          buildSkuMap(dummySkuDetails)
         ]
       });
 
@@ -56,15 +58,27 @@ void main() {
       expect(parsed.skuDetailsList, containsAll(expected.skuDetailsList));
     });
 
+    test('toProductDetails() should return correct Product object', () {
+      final SkuDetailsWrapper wrapper =
+          SkuDetailsWrapper.fromJson(buildSkuMap(dummySkuDetails));
+      final ProductDetails product = ProductDetails.fromSkuDetails(wrapper);
+      expect(product.title, wrapper.title);
+      expect(product.description, wrapper.description);
+      expect(product.id, wrapper.sku);
+      expect(product.price, wrapper.price);
+      expect(product.skuDetail, wrapper);
+      expect(product.skProduct, null);
+    });
+
     test('handles empty list of skuDetails', () {
-      final BillingResponse responseCode = BillingResponse.ERROR;
+      final BillingResponse responseCode = BillingResponse.error;
       final List<SkuDetailsWrapper> skusDetails = <SkuDetailsWrapper>[];
       final SkuDetailsResponseWrapper expected = SkuDetailsResponseWrapper(
           responseCode: responseCode, skuDetailsList: skusDetails);
 
       final SkuDetailsResponseWrapper parsed =
-          SkuDetailsResponseWrapper.fromMap(<String, dynamic>{
-        'responseCode': int.parse(responseCode.toString()),
+          SkuDetailsResponseWrapper.fromJson(<String, dynamic>{
+        'responseCode': BillingResponseConverter().toJson(responseCode),
         'skuDetailsList': <Map<String, dynamic>>[]
       });
 
@@ -74,20 +88,21 @@ void main() {
   });
 }
 
-Map<String, dynamic> buildSkuMap(SkuDetailsWrapper original) =>
-    <String, dynamic>{
-      'description': original.description,
-      'freeTrialPeriod': original.freeTrialPeriod,
-      'introductoryPrice': original.introductoryPrice,
-      'introductoryPriceMicros': original.introductoryPriceMicros,
-      'introductoryPriceCycles': original.introductoryPriceCycles,
-      'introductoryPricePeriod': original.introductoryPricePeriod,
-      'price': original.price,
-      'priceAmountMicros': original.priceAmountMicros,
-      'priceCurrencyCode': original.priceCurrencyCode,
-      'sku': original.sku,
-      'subscriptionPeriod': original.subscriptionPeriod,
-      'title': original.title,
-      'type': original.type.toString(),
-      'isRewarded': original.isRewarded,
-    };
+Map<String, dynamic> buildSkuMap(SkuDetailsWrapper original) {
+  return <String, dynamic>{
+    'description': original.description,
+    'freeTrialPeriod': original.freeTrialPeriod,
+    'introductoryPrice': original.introductoryPrice,
+    'introductoryPriceMicros': original.introductoryPriceMicros,
+    'introductoryPriceCycles': original.introductoryPriceCycles,
+    'introductoryPricePeriod': original.introductoryPricePeriod,
+    'price': original.price,
+    'priceAmountMicros': original.priceAmountMicros,
+    'priceCurrencyCode': original.priceCurrencyCode,
+    'sku': original.sku,
+    'subscriptionPeriod': original.subscriptionPeriod,
+    'title': original.title,
+    'type': original.type.toString().substring(8),
+    'isRewarded': original.isRewarded,
+  };
+}
